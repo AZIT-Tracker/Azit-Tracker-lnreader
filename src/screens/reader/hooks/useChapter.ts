@@ -25,6 +25,7 @@ import {
   useState,
 } from 'react';
 import { sanitizeChapterText } from '../utils/sanitizeChapterText';
+import { autoLinkAzit, isLinkedToAzit } from '@services/Trackers/azitSync';
 import { parseChapterNumber } from '@utils/parseChapterNumber';
 import WebView from 'react-native-webview';
 import { useFullscreenMode } from '@hooks';
@@ -429,7 +430,11 @@ export default function useChapter(
     if (tracker && trackedNovel && chapterNumber > trackedNovel.progress) {
       updateAllTrackedNovels({ progress: chapterNumber });
     }
-  }, [chapter.name, novel.name, trackedNovel, tracker, updateAllTrackedNovels]);
+    // Azit: a novel already in your Azit links itself the first time you read it.
+    if (!isLinkedToAzit(novel.id)) {
+      autoLinkAzit(novel, chapterNumber).catch(() => undefined);
+    }
+  }, [chapter.name, novel, trackedNovel, tracker, updateAllTrackedNovels]);
 
   const markedReadRef = useRef<number | undefined>(undefined);
   const saveProgress = useCallback(

@@ -8,6 +8,7 @@ export const TRACKER_ICONS: Record<TrackerName, ImageSourcePropType> = {
   MangaUpdates: require('../../../../../assets/mangaupdates.png'),
   AniList: require('../../../../../assets/anilist.png'),
   Kitsu: require('../../../../../assets/kitsu.png'),
+  Azit: require('../../../../../assets/azit.png'),
 };
 
 export const STATUS_LABELS: Record<UserListStatus, string> = {

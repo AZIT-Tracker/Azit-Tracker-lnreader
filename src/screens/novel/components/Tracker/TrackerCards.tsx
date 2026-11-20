@@ -54,7 +54,7 @@ export const TrackedItemCard: React.FC<TrackedItemCardProps> = ({
       return '-';
     }
 
-    if (tracker.name === 'AniList') {
+    if (tracker.name === 'AniList' || tracker.name === 'Azit') {
       const formatting = getAniListScoreFormatting(
         tracker.auth.meta.scoreFormat,
         true,

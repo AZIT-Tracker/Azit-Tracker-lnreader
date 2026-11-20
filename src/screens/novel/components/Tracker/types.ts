@@ -1,3 +1,4 @@
+import { NovelInfo } from '@database/types';
 import { ImageSourcePropType } from 'react-native';
 
 import {
@@ -35,6 +36,8 @@ export interface TrackScoreDialogProps extends BaseDialogProps {
 export interface TrackSearchDialogProps extends BaseDialogProps {
   tracker: TrackerMetadata;
   novelName: string;
+  /** The novel being linked (Azit: "Create in Azit" fills the new title from it). */
+  novel?: NovelInfo;
   onTrackNovel: (tracker: TrackerMetadata, novel: SearchResult) => void;
 }
 

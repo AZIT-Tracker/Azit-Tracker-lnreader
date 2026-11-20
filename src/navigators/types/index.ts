@@ -78,6 +78,7 @@ export type SettingsStackParamList = {
   GeneralSettings: undefined;
   ReaderSettings: undefined;
   TrackerSettings: undefined;
+  AzitUnlinked: undefined;
   BackupSettings: undefined;
   AppearanceSettings: undefined;
   AdvancedSettings: undefined;
@@ -171,6 +172,10 @@ export type SettingsScreenProps = CompositeScreenProps<
 export type AppearanceSettingsScreenProps = NativeStackScreenProps<
   SettingsStackParamList,
   'AppearanceSettings'
+>;
+export type AzitUnlinkedScreenProps = NativeStackScreenProps<
+  SettingsStackParamList,
+  'AzitUnlinked'
 >;
 export type TrackerSettingsScreenProps = NativeStackScreenProps<
   SettingsStackParamList,

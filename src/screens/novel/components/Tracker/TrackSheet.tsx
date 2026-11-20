@@ -237,6 +237,7 @@ const TrackSheet: React.FC<TrackSheetProps> = ({ bottomSheetRef, novel }) => {
                 visible
                 onDismiss={handleDismissSearchDialog}
                 novelName={novel.name}
+                novel={novel}
               />
             ) : null}
           </>

@@ -9,6 +9,7 @@ interface TrackerLoginDialogProps {
   onDismiss: () => void;
   onSubmit: (username: string, password: string) => Promise<void>;
   usernameLabel?: string;
+  passwordLabel?: string;
 }
 
 const TrackerLoginDialog: React.FC<TrackerLoginDialogProps> = ({
@@ -17,6 +18,7 @@ const TrackerLoginDialog: React.FC<TrackerLoginDialogProps> = ({
   onDismiss,
   onSubmit,
   usernameLabel = 'Username',
+  passwordLabel = 'Password',
 }) => {
   const theme = useTheme();
 
@@ -27,7 +29,9 @@ const TrackerLoginDialog: React.FC<TrackerLoginDialogProps> = ({
 
   const handleSubmit = async () => {
     if (!username.trim() || !password.trim()) {
-      setError(`${usernameLabel} and password are required`);
+      setError(
+        `${usernameLabel} and ${passwordLabel.toLowerCase()} are required`,
+      );
       return;
     }
 
@@ -84,7 +88,7 @@ const TrackerLoginDialog: React.FC<TrackerLoginDialogProps> = ({
               borderColor: theme.outline,
             },
           ]}
-          placeholder="Password"
+          placeholder={passwordLabel}
           placeholderTextColor={theme.onSurfaceVariant}
           value={password}
           onChangeText={setPassword}

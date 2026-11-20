@@ -1,4 +1,9 @@
-export type TrackerName = 'AniList' | 'MyAnimeList' | 'MangaUpdates' | 'Kitsu';
+export type TrackerName =
+  | 'AniList'
+  | 'MyAnimeList'
+  | 'MangaUpdates'
+  | 'Kitsu'
+  | 'Azit';
 /**
  * Normalized list status values.
  * Not all trackers will use all of these.
@@ -35,6 +40,8 @@ export type SearchResult = {
 };
 
 export type UserListEntry = {
+  /** The tracker's ID, when linking changed it (a title just created in Azit) */
+  id?: number | string;
   /** The user's current reading status */
   status: UserListStatus;
   /** The user's current chapter progress */

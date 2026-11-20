@@ -16,6 +16,23 @@ import { SearchResult } from '@services/Trackers';
 import { TrackSearchDialogProps } from './types';
 import { showToast } from '@utils/showToast';
 import { getErrorMessage } from '@utils/error';
+import { setAzitNovelContext } from '@services/Trackers/azit';
+import { getPlugin } from '@plugins/pluginManager';
+import { NovelInfo } from '@database/types';
+
+/** The novel's page on its site (Azit keeps it as the title's shortcut). */
+const novelPageUrl = (novel: NovelInfo): string | null => {
+  try {
+    const plugin = getPlugin(novel.pluginId);
+    return plugin?.resolveUrl
+      ? plugin.resolveUrl(novel.path, true)
+      : plugin?.site
+      ? new URL(novel.path, plugin.site).toString()
+      : null;
+  } catch {
+    return null;
+  }
+};
 
 const TrackSearchDialog: React.FC<TrackSearchDialogProps> = ({
   tracker,
@@ -23,6 +40,7 @@ const TrackSearchDialog: React.FC<TrackSearchDialogProps> = ({
   visible,
   onDismiss,
   novelName,
+  novel,
 }) => {
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
@@ -46,6 +64,19 @@ const TrackSearchDialog: React.FC<TrackSearchDialogProps> = ({
 
       setLoading(true);
       try {
+        if (tracker.name === 'Azit' && novel) {
+          setAzitNovelContext({
+            title: novel.name,
+            cover: novel.cover,
+            summary: novel.summary,
+            author: novel.author,
+            artist: novel.artist,
+            genres: novel.genres,
+            status: novel.status ? String(novel.status) : null,
+            source: getPlugin(novel.pluginId)?.name ?? novel.pluginId,
+            url: novelPageUrl(novel),
+          });
+        }
         const trackerObj = getTracker(tracker.name);
         const results = await trackerObj.handleSearch(
           normalizedQuery,

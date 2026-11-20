@@ -3,6 +3,7 @@ import { aniListTracker } from '@services/Trackers/aniList';
 import { myAnimeListTracker } from '@services/Trackers/myAnimeList';
 import { mangaUpdatesTracker } from '@services/Trackers/mangaUpdates';
 import { kitsuTracker } from '@services/Trackers/kitsu';
+import { azitTracker } from '@services/Trackers/azit';
 import { useMMKVObject, useMMKVString } from 'react-native-mmkv';
 import { useEffect } from 'react';
 import {
@@ -25,6 +26,7 @@ const trackers: Record<TrackerName, Tracker> = {
   MyAnimeList: myAnimeListTracker,
   MangaUpdates: mangaUpdatesTracker,
   Kitsu: kitsuTracker,
+  Azit: azitTracker,
 };
 
 export const getTracker = (name: TrackerName) => {

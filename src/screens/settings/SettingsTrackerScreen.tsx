@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
-import { Provider, List as PaperList } from 'react-native-paper';
+import { Provider, List as PaperList, Switch } from 'react-native-paper';
 
 import { getTracker, useTheme, useTracker } from '@hooks/persisted';
 import { Appbar, ConfirmationDialog, List, SafeAreaView } from '@components';
@@ -9,6 +9,14 @@ import { getString } from '@i18n/translations';
 import TrackerLoginDialog from './components/TrackerLoginDialog';
 import { authenticateWithCredentials as mangaUpdatesAuth } from '@services/Trackers/mangaUpdates';
 import { authenticateWithCredentials as kitsuAuth } from '@services/Trackers/kitsu';
+import { authenticateWithCredentials as azitAuth } from '@services/Trackers/azit';
+import {
+  flushQueue,
+  getAzitAuth,
+  getQueue,
+  isAutoLinkOn,
+  setAutoLink,
+} from '@services/Trackers/azitSync';
 import { showToast } from '@utils/showToast';
 
 interface TrackerCheckIconProps {
@@ -70,10 +78,21 @@ const KitsuLogo = () => (
   </View>
 );
 
+const AzitLogo = () => (
+  <View style={styles.logoContainer}>
+    <Image
+      source={require('../../../assets/azit.png')}
+      style={styles.trackerLogo}
+    />
+  </View>
+);
+
 const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
   const theme = useTheme();
   const { isTrackerAuthenticated, setTracker, removeTracker, getTrackerAuth } =
     useTracker();
+  const [azitAutoLink, setAzitAutoLink] = useState(isAutoLinkOn());
+  const [azitQueued, setAzitQueued] = useState(getQueue().length);
 
   // Tracker Modal for logout confirmation
   const [logoutTrackerName, setLogoutTrackerName] = useState<string>('');
@@ -89,9 +108,9 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
 
   // Credential-based Login Dialog (MangaUpdates, Kitsu)
   const [credentialLoginTracker, setCredentialLoginTracker] = useState<
-    'MangaUpdates' | 'Kitsu' | null
+    'MangaUpdates' | 'Kitsu' | 'Azit' | null
   >(null);
-  const showCredentialLogin = (tracker: 'MangaUpdates' | 'Kitsu') =>
+  const showCredentialLogin = (tracker: 'MangaUpdates' | 'Kitsu' | 'Azit') =>
     setCredentialLoginTracker(tracker);
   const hideCredentialLogin = () => setCredentialLoginTracker(null);
 
@@ -106,6 +125,9 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
         auth = await mangaUpdatesAuth(username, password);
       } else if (credentialLoginTracker === 'Kitsu') {
         auth = await kitsuAuth(username, password);
+      } else if (credentialLoginTracker === 'Azit') {
+        // The site's address and a device token (Azit -> Settings -> Devices, type LNReader).
+        auth = await azitAuth(username, password);
       } else {
         throw new Error('Unknown tracker');
       }
@@ -120,6 +142,17 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
       throw new Error(`Failed to authenticate with ${credentialLoginTracker}`);
     }
   };
+
+  const renderAzitRight = useCallback(
+    (props: any) => (
+      <TrackerCheckIcon
+        {...props}
+        theme={theme}
+        checked={isTrackerAuthenticated('Azit')}
+      />
+    ),
+    [theme, isTrackerAuthenticated],
+  );
 
   const renderAniListRight = useCallback(
     (props: any) => (
@@ -252,6 +285,73 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
               rippleColor={theme.rippleColor}
               style={styles.listItem}
             />
+            <PaperList.Item
+              title="Azit Tracker"
+              description="Your own Azit: novels only"
+              titleStyle={{ color: theme.onSurface }}
+              descriptionStyle={{ color: theme.onSurfaceVariant }}
+              left={AzitLogo}
+              right={renderAzitRight}
+              onPress={() => {
+                if (isTrackerAuthenticated('Azit')) {
+                  showModal('Azit');
+                } else {
+                  showCredentialLogin('Azit');
+                }
+              }}
+              rippleColor={theme.rippleColor}
+              style={styles.listItem}
+            />
+            {isTrackerAuthenticated('Azit') ? (
+              <>
+                <List.SubHeader theme={theme}>Azit Tracker</List.SubHeader>
+                <PaperList.Item
+                  title="Link novels already in Azit by themselves"
+                  description="Reading a novel your Azit has links it (nothing is created)"
+                  titleStyle={{ color: theme.onSurface }}
+                  descriptionStyle={{ color: theme.onSurfaceVariant }}
+                  right={() => (
+                    <Switch
+                      value={azitAutoLink}
+                      onValueChange={value => {
+                        setAutoLink(value);
+                        setAzitAutoLink(value);
+                      }}
+                    />
+                  )}
+                  style={styles.listItem}
+                />
+                <PaperList.Item
+                  title="Novels not linked to Azit"
+                  description="Your library novels Azit does not track yet: open one to link it"
+                  titleStyle={{ color: theme.onSurface }}
+                  descriptionStyle={{ color: theme.onSurfaceVariant }}
+                  onPress={() => navigation.navigate('AzitUnlinked')}
+                  rippleColor={theme.rippleColor}
+                  style={styles.listItem}
+                />
+                {azitQueued > 0 ? (
+                  <PaperList.Item
+                    title={`${azitQueued} update(s) waiting for Azit`}
+                    description="Kept while Azit could not be reached: tap to send them now"
+                    titleStyle={{ color: theme.onSurface }}
+                    descriptionStyle={{ color: theme.onSurfaceVariant }}
+                    onPress={async () => {
+                      const auth = getAzitAuth();
+                      const sent = auth ? await flushQueue(auth) : 0;
+                      setAzitQueued(getQueue().length);
+                      showToast(
+                        sent
+                          ? `Sent ${sent} update(s) to Azit`
+                          : 'Azit still cannot be reached',
+                      );
+                    }}
+                    rippleColor={theme.rippleColor}
+                    style={styles.listItem}
+                  />
+                ) : null}
+              </>
+            ) : null}
             <List.InfoItem
               title={getString('trackingScreen.info')}
               theme={theme}
@@ -334,7 +434,16 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
             onDismiss={hideCredentialLogin}
             onSubmit={handleCredentialLogin}
             usernameLabel={
-              credentialLoginTracker === 'Kitsu' ? 'Email' : 'Username'
+              credentialLoginTracker === 'Kitsu'
+                ? 'Email'
+                : credentialLoginTracker === 'Azit'
+                ? 'Azit address (http://192.168.1.20:8080)'
+                : 'Username'
+            }
+            passwordLabel={
+              credentialLoginTracker === 'Azit'
+                ? 'Device token (azd_...)'
+                : 'Password'
             }
           />
         </View>
