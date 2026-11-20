@@ -38,7 +38,10 @@ export interface TrackSearchDialogProps extends BaseDialogProps {
   novelName: string;
   /** The novel being linked (Azit: "Create in Azit" fills the new title from it). */
   novel?: NovelInfo;
-  onTrackNovel: (tracker: TrackerMetadata, novel: SearchResult) => void;
+  onTrackNovel: (
+    tracker: TrackerMetadata,
+    novel: SearchResult,
+  ) => Promise<unknown> | void;
 }
 
 export interface AddTrackingCardProps {

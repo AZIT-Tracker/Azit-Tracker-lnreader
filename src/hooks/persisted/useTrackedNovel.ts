@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMMKVString } from 'react-native-mmkv';
 import { SearchResult, TrackerName, UserListEntry } from '@services/Trackers';
-import { TrackerMetadata, getTracker } from './useTracker';
+import { TrackerMetadata, getAllTrackerNames, getTracker } from './useTracker';
 import { getErrorMessage } from '@utils/error';
 import { getMMKVObject, setMMKVObject, MMKVStorage } from '@utils/mmkv/mmkv';
 import { showToast } from '@utils/showToast';
@@ -52,12 +52,8 @@ export const useTrackedNovel = (novelId: number | 'NO_ID') => {
     }
 
     const loadedNovels: Partial<Record<TrackerName, TrackedNovel>> = {};
-    const trackerNames: TrackerName[] = [
-      'AniList',
-      'MyAnimeList',
-      'MangaUpdates',
-      'Kitsu',
-    ];
+    // Every tracker, Azit included (a fixed list here forgot it: its links never loaded back).
+    const trackerNames: TrackerName[] = getAllTrackerNames();
 
     trackerNames.forEach(trackerName => {
       const key = getTrackerStorageKey(novelId, trackerName);
@@ -69,6 +65,26 @@ export const useTrackedNovel = (novelId: number | 'NO_ID') => {
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTrackedNovels(loadedNovels);
+
+    // A link saved elsewhere (the tracking sheet, auto-link while reading) shows here at once.
+    const prefix = `${TRACKED_NOVEL_PREFIX}_${novelId}_`;
+    const listener = MMKVStorage.addOnValueChangedListener(changedKey => {
+      if (!changedKey.startsWith(prefix)) {
+        return;
+      }
+      const trackerName = changedKey.slice(prefix.length) as TrackerName;
+      const data = getMMKVObject<TrackedNovel>(changedKey);
+      setTrackedNovels(previous => {
+        const next = { ...previous };
+        if (data) {
+          next[trackerName] = data;
+        } else {
+          delete next[trackerName];
+        }
+        return next;
+      });
+    });
+    return () => listener.remove();
   }, [novelId, migrated, setMigrated]);
 
   const getTrackedNovel = useCallback(
@@ -151,9 +167,8 @@ export const useTrackedNovel = (novelId: number | 'NO_ID') => {
         .then((res: UserListEntry) => {
           const updatedNovel = {
             ...currentTrackedNovel,
-            progress: res.progress,
-            score: res.score,
-            status: res.status,
+            // What the tracker answered, whole (a title and cover it gives replace the linked ones: Azit).
+            ...res,
           };
 
           const key = getTrackerStorageKey(novelId, tracker.name);
@@ -209,9 +224,8 @@ export const useTrackedNovel = (novelId: number | 'NO_ID') => {
 
             const updatedNovel = {
               ...currentTrackedNovel,
-              progress: res.progress,
-              score: res.score,
-              status: res.status,
+              // What the tracker answered, whole (a title and cover it gives replace the linked ones: Azit).
+              ...res,
             };
 
             const key = getTrackerStorageKey(novelId, trackerName);

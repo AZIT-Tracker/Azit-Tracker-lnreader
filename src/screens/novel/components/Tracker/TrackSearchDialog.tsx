@@ -16,7 +16,12 @@ import { SearchResult } from '@services/Trackers';
 import { TrackSearchDialogProps } from './types';
 import { showToast } from '@utils/showToast';
 import { getErrorMessage } from '@utils/error';
-import { setAzitNovelContext } from '@services/Trackers/azit';
+import {
+  getAzitNovelContext,
+  setAzitNovelContext,
+} from '@services/Trackers/azit';
+import AzitCreateDialog from './AzitCreateDialog';
+import { getNovelChapters } from '@database/queries/ChapterQueries';
 import { getPlugin } from '@plugins/pluginManager';
 import { NovelInfo } from '@database/types';
 
@@ -176,9 +181,41 @@ const TrackSearchDialog: React.FC<TrackSearchDialogProps> = ({
     onDismiss();
   }, [cancelScheduledSearch, onDismiss]);
 
-  const handleSelectNovel = useCallback((item: SearchResult) => {
-    setSelectedNovel(item);
-  }, []);
+  const [creating, setCreating] = useState<SearchResult>();
+  const handleSelectNovel = useCallback(
+    (item: SearchResult) => {
+      // Azit's "+ Create … in Azit": the creation form first, like Komikku's.
+      if (tracker.name === 'Azit' && String(item.id).startsWith('create:')) {
+        if (novel) {
+          getNovelChapters(novel.id)
+            .then(chapters => {
+              const read = chapters.filter(chapter => chapter.unread === false);
+              const finished = /complete/i.test(String(novel.status ?? ''));
+              const allRead =
+                chapters.length > 0 && read.length === chapters.length;
+              setAzitNovelContext({
+                ...(getAzitNovelContext() ?? { title: novelName }),
+                chaptersRead:
+                  allRead && finished ? chapters.length : read.length,
+                entryStatus:
+                  allRead && finished
+                    ? 'completed'
+                    : read.length
+                    ? 'current'
+                    : 'planning',
+              });
+            })
+            .catch(() => undefined)
+            .finally(() => setCreating(item));
+        } else {
+          setCreating(item);
+        }
+        return;
+      }
+      setSelectedNovel(item);
+    },
+    [tracker.name, novel, novelName],
+  );
 
   const handleRemoveSelection = useCallback(() => {
     setSelectedNovel(undefined);
@@ -186,7 +223,12 @@ const TrackSearchDialog: React.FC<TrackSearchDialogProps> = ({
 
   const handleConfirm = useCallback(() => {
     if (selectedNovel) {
-      onTrackNovel(tracker, selectedNovel);
+      // A failure used to be silent (nothing happened): say why.
+      Promise.resolve(onTrackNovel(tracker, selectedNovel)).catch(error =>
+        showToast(
+          `Could not link to ${tracker.name}: ${getErrorMessage(error)}`,
+        ),
+      );
     }
     handleDismiss();
   }, [selectedNovel, onTrackNovel, tracker, handleDismiss]);
@@ -199,8 +241,10 @@ const TrackSearchDialog: React.FC<TrackSearchDialogProps> = ({
         <TouchableRipple
           style={[
             styles.searchResultCard,
+            styles.searchResultBorder,
             isSelected && {
-              backgroundColor: theme.rippleColor,
+              backgroundColor: theme.primaryContainer,
+              borderColor: theme.primary,
             },
           ]}
           key={item.id}
@@ -277,6 +321,8 @@ const TrackSearchDialog: React.FC<TrackSearchDialogProps> = ({
             ) : null
           }
           renderItem={({ item }) => renderSearchResultCard(item)}
+          // Redraw when the selection changes (else the check mark never shows).
+          extraData={selectedNovel?.id}
           style={styles.resultsList}
         />
       </Dialog.ScrollArea>
@@ -291,6 +337,24 @@ const TrackSearchDialog: React.FC<TrackSearchDialogProps> = ({
         />
         <Dialog.Action title="OK" onPress={handleConfirm} />
       </Dialog.Actions>
+      {creating ? (
+        <AzitCreateDialog
+          context={getAzitNovelContext() ?? { title: novelName }}
+          onDismiss={() => setCreating(undefined)}
+          onCreate={form => {
+            setAzitNovelContext({
+              ...(getAzitNovelContext() ?? { title: novelName }),
+              ...form,
+            });
+            const item = creating;
+            setCreating(undefined);
+            Promise.resolve(onTrackNovel(tracker, item)).catch(error =>
+              showToast(`Could not create in Azit: ${getErrorMessage(error)}`),
+            );
+            handleDismiss();
+          }}
+        />
+      ) : null}
     </Dialog.Root>
   );
 };
@@ -298,6 +362,11 @@ const TrackSearchDialog: React.FC<TrackSearchDialogProps> = ({
 export default TrackSearchDialog;
 
 const styles = StyleSheet.create({
+  searchResultBorder: {
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: 8,
+  },
   checkIcon: {
     position: 'absolute',
     right: 8,

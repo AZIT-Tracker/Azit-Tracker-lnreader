@@ -6,6 +6,7 @@
  * touches the manga Komikku tracks (and Komikku never touches these novels).
  */
 import { enqueue, flushQueue, isOffline } from './azitSync';
+import { cacheDirectory, downloadAsync } from 'expo-file-system/legacy';
 import {
   AuthenticationResult,
   SearchResult,
@@ -50,12 +51,16 @@ export function normalizeServer(address: string): string {
 const absolute = (url: string | null | undefined, server: string) =>
   !url ? '' : url.startsWith('/') ? `${server}${url}` : url;
 
+/** The address of the Azit last called (to make its picture paths absolute on the tracker card). */
+let lastServer = '';
+
 async function call<T>(
   auth: Pick<AzitAuth, 'accessToken' | 'meta'>,
   method: string,
   path: string,
   body?: unknown,
 ): Promise<T> {
+  lastServer = auth.meta!.server;
   const response = await fetch(`${auth.meta!.server}${path}`, {
     method,
     headers: {
@@ -124,8 +129,18 @@ type AzitEntry = {
 
 const toEntry = (
   entry: AzitEntry,
-): UserListEntry & { id: number; totalChapters?: number } => ({
+): UserListEntry & {
+  id: number;
+  totalChapters?: number;
+  title?: string;
+  coverImage?: string;
+} => ({
   id: entry.media_id,
+  // Azit's own title and cover on the tracker card (not the search result's "+ Create … in Azit").
+  title: entry.title,
+  ...(entry.cover_url && lastServer
+    ? { coverImage: absolute(entry.cover_url, lastServer) }
+    : {}),
   status: (entry.status && fromAzit[entry.status]) || 'PLANNING',
   progress: Math.floor(entry.progress?.chapter ?? 0),
   score: entry.score ?? 0,
@@ -144,9 +159,14 @@ export type AzitNovelContext = {
   source?: string | null;
   status?: string | null;
   chaptersRead?: number;
+  /** Set in the "Create in Azit" form: the Azit type (novel, light_novel, web_novel), my status and score (0-100). */
+  typeSlug?: string;
+  entryStatus?: string;
+  score?: number;
 };
 let novelContext: AzitNovelContext | null = null;
 /** Set by the search dialog: the novel the results are for. */
+export const getAzitNovelContext = () => novelContext;
 export const setAzitNovelContext = (context: AzitNovelContext | null) => {
   novelContext = context;
 };
@@ -169,10 +189,15 @@ async function uploadCover(
     return undefined;
   }
   try {
+    let uri = cover;
+    if (/^https?:/i.test(cover)) {
+      const target = `${cacheDirectory}azit-cover-${Date.now()}.jpg`;
+      uri = (await downloadAsync(cover, target)).uri;
+    }
     const form = new FormData();
-    // React Native's fetch sends a file from its uri (file://, content:// or http(s)://).
+    // React Native's fetch sends a local file from its uri (file:// or content://).
     form.append('file', {
-      uri: cover,
+      uri,
       name: 'cover.jpg',
       type: 'image/jpeg',
     } as any);
@@ -194,6 +219,7 @@ async function createInAzit(auth: AzitAuth, title: string) {
   const entry = await call<AzitEntry>(auth, 'POST', '/api/tracking/progress', {
     title: context.title || title,
     kind: 'novel',
+    type_slug: context.typeSlug || undefined,
     force_create: true,
     create_if_missing: true,
     only_forward: false,
@@ -218,7 +244,9 @@ async function createInAzit(auth: AzitAuth, title: string) {
       .slice(0, 50),
     release_status: releaseStatus(context.status),
     chapter: context.chaptersRead || undefined,
-    status: context.chaptersRead ? 'current' : 'planning',
+    status:
+      context.entryStatus || (context.chaptersRead ? 'current' : 'planning'),
+    score: context.score || undefined,
   });
   return entry;
 }
