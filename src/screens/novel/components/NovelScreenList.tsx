@@ -31,6 +31,7 @@ import { useNovelActions, useNovelValue } from '../NovelContext';
 import { UseBooleanReturnType } from '@hooks/index';
 import { useCustomNovelCover } from '../hooks/useCustomNovelCover';
 import { useSaveNovelCover } from '../hooks/useSaveNovelCover';
+import { useResumeChapter } from '../hooks/useResumeChapter';
 import { NovelScreenProps } from '@navigators/types';
 import { useDownloadReconciliation } from '../hooks/useDownloadReconciliation';
 import NovelFloatingActions from './NovelFloatingActions';
@@ -76,7 +77,8 @@ const NovelScreenList = ({
   const batchInformation = useNovelValue('batchInformation');
   const novelSettings = useNovelValue('novelSettings');
   const pageIndex = useNovelValue('pageIndex');
-  const lastRead = useNovelValue('lastRead');
+  const storedLastRead = useNovelValue('lastRead');
+  const lastRead = useResumeChapter(storedLastRead, chapters);
   const {
     deleteChapter,
     setNovel,
