@@ -310,6 +310,7 @@ const TrackSearchDialog: React.FC<TrackSearchDialogProps> = ({
       <Dialog.ScrollArea>
         <LegendList
           data={loading ? [] : searchResults}
+          recycleItems={false}
           keyExtractor={item => item.id.toString()}
           ListEmptyComponent={
             loading ? (

@@ -204,6 +204,7 @@ const TrackerScreen = ({ navigation }: TrackerSettingsScreenProps) => {
     <SafeAreaView excludeTop>
       <Provider>
         <Appbar
+          mode="small"
           title={getString('tracking')}
           handleGoBack={() => navigation.goBack()}
           theme={theme}

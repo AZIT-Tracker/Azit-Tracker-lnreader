@@ -25,6 +25,11 @@ android {
     }
 
     buildTypes {
+        // Azit: the fork's release installs beside an official LNReader.
+        release {
+            applicationIdSuffix ".azit"
+        }
+
         debug {
             signingConfig signingConfigs.debug
             applicationIdSuffix "debug"

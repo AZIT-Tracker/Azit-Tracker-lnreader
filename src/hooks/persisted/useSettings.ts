@@ -9,6 +9,7 @@ import { useMMKVObject } from 'react-native-mmkv';
 import { useEffect, useMemo } from 'react';
 import { getMMKVObject } from '@utils/mmkv/mmkv';
 import type { DateFormat } from '@utils/dateFormat';
+import type { BackupOptions } from '@services/backup/options';
 import type {
   AutomaticBackupInterval,
   AutomaticLibraryUpdateInterval,
@@ -56,6 +57,20 @@ export interface AppSettings {
   showLabelsInNav: boolean;
   useFabForContinueReading: boolean;
   disableLoadingAnimations: boolean;
+  reduceAppAnimations: boolean;
+  ePaperOptimizations: boolean;
+  ePaperPreviousSettings?: {
+    disableLoadingAnimations: boolean;
+    reduceAppAnimations: boolean;
+    readerTheme: ReaderTheme;
+    readerGeneral: Pick<
+      ChapterGeneralSettings,
+      | 'pageReader'
+      | 'useVolumeButtons'
+      | 'pageReaderDisableAnimation'
+      | 'autoScroll'
+    >;
+  };
   dateFormat?: DateFormat;
   relativeTimestamps?: boolean;
 
@@ -73,10 +88,12 @@ export interface AppSettings {
   smartUpdateSkipCompleted: boolean;
   smartUpdateSkipUnstarted: boolean;
   smartUpdateSkipWithUnread: boolean;
+  smartUpdateSkipNotDue: boolean;
   automaticLibraryUpdateIntervalHours: AutomaticLibraryUpdateInterval;
   automaticBackupIntervalHours?: AutomaticBackupInterval;
   automaticBackupDirectoryUri?: string;
   automaticBackupDirectoryName?: string;
+  automaticBackupOptions?: BackupOptions;
   lastAutomaticBackupAt?: number;
   updateLibraryOnLaunch: boolean;
   downloadNewChapters: boolean;
@@ -120,6 +137,8 @@ export interface LibrarySettings {
   lastUsedCategoryId?: number;
   globalUpdateExcludeCategoryIds?: number[];
   globalUpdateIncludeCategoryIds?: number[];
+  upcomingExcludeCategoryIds?: number[];
+  upcomingIncludeCategoryIds?: number[];
   sortOrder?: LibrarySortOrder;
   filter?: LibraryFilter;
   showDownloadBadges?: boolean;
@@ -196,6 +215,7 @@ export interface ChapterGeneralSettings {
   TTSEnable: boolean;
   pageReaderInvertVolumeButtons: boolean;
   pageReaderDisableAnimation: boolean;
+  infiniteScroll: boolean;
 }
 
 export interface ReaderTheme {
@@ -261,6 +281,8 @@ const initialAppSettings: AppSettings = {
   showLabelsInNav: true,
   useFabForContinueReading: false,
   disableLoadingAnimations: false,
+  reduceAppAnimations: false,
+  ePaperOptimizations: false,
   dateFormat: 'default',
   relativeTimestamps: true,
 
@@ -278,6 +300,7 @@ const initialAppSettings: AppSettings = {
   smartUpdateSkipCompleted: false,
   smartUpdateSkipUnstarted: false,
   smartUpdateSkipWithUnread: false,
+  smartUpdateSkipNotDue: false,
   automaticLibraryUpdateIntervalHours: 0,
   automaticBackupIntervalHours: 0,
   updateLibraryOnLaunch: false,
@@ -323,6 +346,7 @@ export const initialChapterGeneralSettings: ChapterGeneralSettings = {
   TTSEnable: true,
   pageReaderInvertVolumeButtons: false,
   pageReaderDisableAnimation: false,
+  infiniteScroll: false,
 };
 
 export const initialChapterReaderSettings: ChapterReaderSettings = {
@@ -361,7 +385,10 @@ export const useAppSettings = () => {
     useMMKVObject<AppSettings>(APP_SETTINGS);
 
   const setAppSettings = (values: Partial<AppSettings>) =>
-    setSettings({ ...appSettings, ...values });
+    setSettings(currentSettings => ({
+      ...(currentSettings ?? initialAppSettings),
+      ...values,
+    }));
 
   return {
     ...appSettings,
