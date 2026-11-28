@@ -8,14 +8,15 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { Checkbox as PaperCheckbox } from 'react-native-paper';
+import { Host, TriStateCheckbox } from '@expo/ui/jetpack-compose';
 import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons';
+import { getString } from '@i18n/translations';
 
 import { ThemeColors } from '../../theme/types';
 
 interface CheckboxProps {
   label: string;
-  status: boolean | 'indeterminate';
+  status: boolean | 'indeterminate' | 'excluded';
   onPress?: () => void;
   disabled?: boolean;
   theme: ThemeColors;
@@ -38,10 +39,14 @@ export const Checkbox: React.FC<CheckboxProps> = ({
 }) => (
   <Pressable
     accessibilityHint={description}
-    accessibilityLabel={label}
+    accessibilityLabel={
+      status === 'excluded'
+        ? getString('common.excludedItem', { name: label })
+        : label
+    }
     accessibilityRole="checkbox"
     accessibilityState={{
-      checked: status === 'indeterminate' ? 'mixed' : status,
+      checked: status === 'indeterminate' ? 'mixed' : status === true,
       disabled,
     }}
     android_ripple={{ color: theme.rippleColor }}
@@ -49,22 +54,38 @@ export const Checkbox: React.FC<CheckboxProps> = ({
     onPress={onPress}
     disabled={disabled}
   >
-    <PaperCheckbox
-      status={
-        status === 'indeterminate'
-          ? 'indeterminate'
-          : status
-          ? 'checked'
-          : 'unchecked'
-      }
-      onPress={onPress}
-      color={theme.primary}
-      theme={{
-        colors: { disabled: theme.onSurfaceVariant },
-      }}
-      uncheckedColor={theme.onSurfaceVariant}
-      disabled={disabled}
-    />
+    {/* Display-only: the row Pressable owns touch and ripple, so the checkbox
+        must not draw its own ripple, which gets clipped by the row bounds. */}
+    <View pointerEvents="none" style={styles.checkboxContainer}>
+      {status === 'excluded' ? (
+        <MaterialCommunityIcons
+          name="close-box"
+          color={theme.primary}
+          size={24}
+        />
+      ) : (
+        <Host matchContents>
+          <TriStateCheckbox
+            state={
+              status === 'indeterminate'
+                ? 'indeterminate'
+                : status
+                ? 'on'
+                : 'off'
+            }
+            enabled={!disabled}
+            colors={{
+              checkedColor: theme.primary,
+              uncheckedColor: theme.onSurfaceVariant,
+              checkmarkColor: theme.onPrimary,
+              disabledCheckedColor: theme.onSurfaceDisabled,
+              disabledUncheckedColor: theme.onSurfaceDisabled,
+              disabledIndeterminateColor: theme.onSurfaceDisabled,
+            }}
+          />
+        </Host>
+      )}
+    </View>
     <View style={styles.textContainer}>
       <Text
         style={[styles.defaultLabel, { color: theme.onSurface }, labelStyle]}
@@ -115,6 +136,12 @@ export const SortItem = ({ label, status, onPress, theme }: SortItemProps) => (
 );
 
 const styles = StyleSheet.create({
+  checkboxContainer: {
+    alignItems: 'center',
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
   defaultLabel: {
     flexShrink: 1,
   },

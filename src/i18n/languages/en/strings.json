@@ -176,8 +176,12 @@
       "backup": "Drive Backup",
       "backupInterruped": "Drive Backup Interrupted",
       "googleDriveBackup": "Google Drive Backup",
+      "loadBackupsFailed": "Couldn't load backups: %{error}",
+      "permissionRequired": "Google Drive access is required. Sign in again and allow LNReader to access its Drive files.",
+      "prepareFailed": "Couldn't create the backup folder: %{error}",
       "restore": "Drive Restore",
-      "restoreInterruped": "Drive Restore Interrupted"
+      "restoreInterruped": "Drive Restore Interrupted",
+      "signInFailed": "Google sign-in failed: %{error}"
     },
     "googeDrive": "Google Drive",
     "googeDriveDesc": "Backup to your Google Drive",
@@ -333,6 +337,7 @@
     "downloads": "Downloads",
     "edit": "Edit",
     "example": "Example",
+    "excludedItem": "%{name}, excluded",
     "filter": "Filter",
     "globally": "globally",
     "install": "Install",
@@ -502,6 +507,8 @@
   },
   "library": "Library",
   "libraryScreen": {
+    "removeSelectedTitle": "Remove from library?",
+    "removeSelectedMessage": "Selected entries: %{count}",
     "bottomSheet": {
       "display": {
         "badges": "Badges",
@@ -523,6 +530,7 @@
         "completed": "Completed",
         "customUpdateFrequency": "Customized update frequency",
         "downloaded": "Downloaded",
+        "genres": "Genres",
         "started": "Started",
         "unread": "Unread"
       },

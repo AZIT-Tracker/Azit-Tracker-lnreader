@@ -47,6 +47,7 @@ const AniListLogo = () => (
     <Image
       source={require('../../../assets/anilist.png')}
       style={styles.trackerLogo}
+      fadeDuration={0}
     />
   </View>
 );
@@ -56,6 +57,7 @@ const MyAnimeListLogo = () => (
     <Image
       source={require('../../../assets/mal.png')}
       style={styles.trackerLogo}
+      fadeDuration={0}
     />
   </View>
 );
@@ -65,6 +67,7 @@ const MangaUpdatesLogo = () => (
     <Image
       source={require('../../../assets/mangaupdates.png')}
       style={styles.trackerLogo}
+      fadeDuration={0}
     />
   </View>
 );
@@ -74,6 +77,7 @@ const KitsuLogo = () => (
     <Image
       source={require('../../../assets/kitsu.png')}
       style={styles.trackerLogo}
+      fadeDuration={0}
     />
   </View>
 );
